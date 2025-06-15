@@ -1096,6 +1096,29 @@ static std::optional<std::chrono::seconds> get_playtime_from_save( const WORLD *
     return pt_seconds;
 }
 
+struct save_meta {
+    std::string timestamp;
+    std::string location;
+    std::string screenshot;
+};
+
+static std::optional<save_meta> get_meta_from_save( const WORLD *world, const save_t &save )
+{
+    const cata_path meta_file = world->folder_path() / ( save.base_path() + ".meta" );
+    if( !file_exist( meta_file ) ) {
+        return std::nullopt;
+    }
+    save_meta m;
+    read_from_file( meta_file, [&m]( std::istream & fin ) {
+        JsonIn jsin( fin );
+        JsonObject obj = jsin.get_object();
+        m.timestamp = obj.get_string( "timestamp", "" );
+        m.location = obj.get_string( "location", "" );
+        m.screenshot = obj.get_string( "screenshot", "" );
+    } );
+    return m;
+}
+
 bool main_menu::load_character_tab( const std::string &worldname )
 {
     WORLD *cur_world = world_generator->get_world( worldname );
@@ -1120,6 +1143,7 @@ bool main_menu::load_character_tab( const std::string &worldname )
     int opt_val = 0;
     for( const save_t &s : savegames ) {
         std::optional<std::chrono::seconds> playtime = get_playtime_from_save( cur_world, s );
+        std::optional<save_meta> meta = get_meta_from_save( cur_world, s );
         std::string save_str = s.decoded_name();
         std::string playtime_str;
         if( playtime ) {
@@ -1130,8 +1154,15 @@ bool main_menu::load_character_tab( const std::string &worldname )
             playtime_str = string_format( "<color_c_light_blue>[%02d:%02d:%02d]</color>",
                                           pt_hrs, pt_min, static_cast<int>( pt_sec ) );
         }
+        std::string desc;
+        if( meta ) {
+            desc = meta->timestamp;
+            if( !meta->location.empty() ) {
+                desc += " - " + meta->location;
+            }
+        }
         // TODO: Replace this API to allow adding context without an empty description.
-        mmenu.entries.emplace_back( opt_val++, true, MENU_AUTOASSIGN, save_str, "", playtime_str );
+        mmenu.entries.emplace_back( opt_val++, true, MENU_AUTOASSIGN, save_str, desc, playtime_str );
     }
     mmenu.entries.emplace_back( opt_val, true, 'q', _( "<- Back to Main Menu" ), c_yellow, c_yellow );
     mmenu.query();
