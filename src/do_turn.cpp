@@ -78,6 +78,7 @@
 #include "weather.h"
 #include "weather_type.h"
 #include "worldfactory.h"
+#include "main_menu.h"
 
 static const activity_id ACT_AUTODRIVE( "ACT_AUTODRIVE" );
 static const activity_id ACT_FIRSTAID( "ACT_FIRSTAID" );
@@ -129,13 +130,38 @@ bool cleanup_at_end()
         g->save_achievements();
 
         g->death_screen();
+
+        uilist dmenu( _( "You have died" ), {} );
+        dmenu.addentry( 0, true, 'l', _( "Load last save" ) );
+        dmenu.addentry( 1, true, 's', _( "Load different save" ) );
+        dmenu.addentry( 2, true, 'q', _( "Quit to main menu" ) );
+        dmenu.query();
+        if( dmenu.ret == 0 ) {
+            g->quickload();
+        } else if( dmenu.ret == 1 ) {
+            uilist lmenu;
+            lmenu.title = _( "Select save" );
+            for( const save_t &sv : world_generator->active_world->world_saves ) {
+                lmenu.addentry( lmenu.entries.size(), true, MENU_AUTOASSIGN, sv.decoded_name() );
+            }
+            lmenu.query();
+            if( lmenu.ret >= 0 &&
+                static_cast<size_t>( lmenu.ret ) < world_generator->active_world->world_saves.size() ) {
+                g->uquit = QUIT_NOSAVED;
+                main_menu::queued_world_to_load = world_generator->active_world->world_name;
+                main_menu::queued_save_id_to_load =
+                    world_generator->active_world->world_saves[lmenu.ret].decoded_name();
+            }
+        }
         std::chrono::seconds time_since_load =
             std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::steady_clock::now() - g->time_of_last_load );
         std::chrono::seconds total_time_played = g->time_played_at_last_load + time_since_load;
         get_event_bus().send<event_type::game_over>( total_time_played );
         // Struck the save_player_data here to forestall Weirdness
-        g->move_save_to_graveyard();
+        if( !get_option<bool>( "SAVE_KEEP_ON_DEATH" ) ) {
+            g->move_save_to_graveyard();
+        }
         g->write_memorial_file( g->stats().value_of( event_statistic_last_words )
                                 .get<cata_variant_type::string>() );
         get_memorial().clear();

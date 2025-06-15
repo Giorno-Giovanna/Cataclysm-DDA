@@ -2744,6 +2744,11 @@ void options_manager::add_options_world_default()
          false
        );
 
+    add( "SAVE_KEEP_ON_DEATH", "world_default", to_translation( "Keep saves on death" ),
+         to_translation( "If true, character save files are preserved after death." ),
+         false
+       );
+
     add_empty_line();
 
     // These optiosn are purposefully and permanently hidden. It can only be modified through the sliders when creating a new world.

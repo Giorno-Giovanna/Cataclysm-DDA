@@ -170,6 +170,7 @@
 #include "past_achievements_info.h"
 #include "path_info.h"
 #include "pathfinding.h"
+#include "save_metadata.h"
 #include "pickup.h"
 #include "player_activity.h"
 #include "popup.h"
@@ -3698,6 +3699,20 @@ bool game::save()
                 fout.imbue( std::locale::classic() );
                 fout << total_time_played.count();
             } );
+
+            save_metadata meta;
+            meta.timestamp = timestamp_now();
+            meta.pos = u.pos_abs_omt();
+#if defined(TILES)
+            cata_path shots = PATH_INFO::world_base_save_path() / "screenshots";
+            assure_dir_exist( shots );
+            const std::string shot_name = base64_encode( u.get_save_id() ) + ".png";
+            cata_path shot_path = shots / shot_name;
+            if( take_screenshot( shot_path.generic_u8string() ) ) {
+                meta.screenshot = shot_path.u8string();
+            }
+#endif
+            write_save_metadata( meta, u.get_save_id() );
 #if defined(EMSCRIPTEN)
             // This will allow the window to be closed without a prompt, until do_turn()
             // is called.
