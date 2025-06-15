@@ -135,7 +135,7 @@ bool cleanup_at_end()
         std::chrono::seconds total_time_played = g->time_played_at_last_load + time_since_load;
         get_event_bus().send<event_type::game_over>( total_time_played );
         // Struck the save_player_data here to forestall Weirdness
-        g->move_save_to_graveyard();
+        // Keep the save for manual reloads instead of moving it to the graveyard
         g->write_memorial_file( g->stats().value_of( event_statistic_last_words )
                                 .get<cata_variant_type::string>() );
         get_memorial().clear();

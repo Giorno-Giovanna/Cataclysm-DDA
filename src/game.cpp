@@ -13387,10 +13387,11 @@ void game::init_autosave()
 
 void game::quicksave()
 {
-    //Don't autosave if the player hasn't done anything since the last autosave/quicksave,
+    // Don't autosave if the player hasn't done anything since the last autosave/quicksave
     if( !moves_since_last_save ) {
         return;
     }
+
     add_msg( m_info, _( "Saving game, this may take a while." ) );
 
     static_popup popup;
@@ -13398,11 +13399,36 @@ void game::quicksave()
     ui_manager::redraw();
     refresh_display();
 
-    time_t now = std::time( nullptr ); //timestamp for start of saving procedure
+    time_t now = std::time( nullptr ); // timestamp for start of saving procedure
 
-    //perform save
+    // create a unique save id so multiple quicksaves are kept
+    const std::string old_id = u.get_save_id();
+    const std::string new_id = ensure_valid_file_name( old_id + "_" + timestamp_now() );
+    u.set_save_id( new_id );
+
+    // perform save
     save();
-    //Now reset counters for autosaving, so we don't immediately autosave after a quicksave or autosave.
+
+#if defined(TILES)
+    // store a screenshot of the current viewport along the save
+    const cata_path screenshot_dir = PATH_INFO::world_base_save_path() / "screenshots";
+    assure_dir_exist( screenshot_dir );
+    const cata_path screenshot_path = screenshot_dir / ( base64_encode( new_id ) + ".png" );
+    take_screenshot( screenshot_path.generic_u8string() );
+#endif
+
+    // store simple metadata
+    const cata_path meta_path = PATH_INFO::world_base_save_path() / ( base64_encode( new_id ) + ".meta" );
+    write_to_file( meta_path, [&]( std::ostream & fout ) {
+        JsonOut jsout( fout );
+        jsout.start_object();
+        jsout.member( "timestamp", timestamp_now() );
+        jsout.member( "location", get_player_character().global_sm_location().to_string() );
+        jsout.member( "screenshot", screenshot_path.get_unrelative_path().generic_u8string() );
+        jsout.end_object();
+    } );
+
+    // Now reset counters for autosaving, so we don't immediately autosave after a quicksave
     moves_since_last_save = 0;
     last_save_timestamp = now;
 }
@@ -13414,24 +13440,36 @@ void game::quickload()
         return;
     }
     std::string const world_name = active_world->world_name;
-    std::string const &save_id = u.get_save_id();
 
-    if( active_world->save_exists( save_t::from_save_id( save_id ) ) ) {
-        if( moves_since_last_save != 0 ) { // See if we need to reload anything
-            moves_since_last_save = 0;
-            last_save_timestamp = std::time( nullptr );
-
-            u.set_moves( 0 );
-            uquit = QUIT_NOSAVED;
-
-            main_menu::queued_world_to_load = world_name;
-            main_menu::queued_save_id_to_load = save_id;
-
-        }
-
-    } else {
+    std::vector<std::string> saves = list_active_saves();
+    if( saves.empty() ) {
         popup_getkey( _( "No saves for current character yet." ) );
+        return;
     }
+
+    std::string chosen = saves.back();
+    if( saves.size() > 1 ) {
+        uilist smenu;
+        smenu.title = _( "Select save to load" );
+        int opt = 0;
+        for( const std::string &id : saves ) {
+            smenu.addentry( opt++, true, MENU_AUTOASSIGN, id );
+        }
+        smenu.query();
+        if( smenu.ret < 0 || static_cast<size_t>( smenu.ret ) >= saves.size() ) {
+            return;
+        }
+        chosen = saves[smenu.ret];
+    }
+
+    moves_since_last_save = 0;
+    last_save_timestamp = std::time( nullptr );
+
+    u.set_moves( 0 );
+    uquit = QUIT_NOSAVED;
+
+    main_menu::queued_world_to_load = world_name;
+    main_menu::queued_save_id_to_load = chosen;
 }
 
 void game::autosave()
