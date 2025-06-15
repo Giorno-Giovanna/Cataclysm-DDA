@@ -5,7 +5,6 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <functional>
@@ -61,6 +60,7 @@
 #include "ui_style_picker.h"
 #include "wcwidth.h"
 #include "worldfactory.h"
+#include "save_metadata.h"
 
 static const mod_id MOD_INFORMATION_dda( "dda" );
 static const mod_id MOD_INFORMATION_dda_tutorial( "dda_tutorial" );
@@ -1096,6 +1096,23 @@ static std::optional<std::chrono::seconds> get_playtime_from_save( const WORLD *
     return pt_seconds;
 }
 
+struct save_preview {
+    std::string timestamp;
+    std::string screenshot;
+};
+
+static std::optional<save_preview> get_save_preview( const WORLD *world, const save_t &save )
+{
+    save_metadata meta;
+    if( !read_save_metadata( world, save, meta ) ) {
+        return std::nullopt;
+    }
+    save_preview p;
+    p.timestamp = meta.timestamp;
+    p.screenshot = meta.screenshot;
+    return p;
+}
+
 bool main_menu::load_character_tab( const std::string &worldname )
 {
     WORLD *cur_world = world_generator->get_world( worldname );
@@ -1120,8 +1137,13 @@ bool main_menu::load_character_tab( const std::string &worldname )
     int opt_val = 0;
     for( const save_t &s : savegames ) {
         std::optional<std::chrono::seconds> playtime = get_playtime_from_save( cur_world, s );
+        std::optional<save_preview> preview = get_save_preview( cur_world, s );
         std::string save_str = s.decoded_name();
         std::string playtime_str;
+        std::string desc;
+        if( preview ) {
+            desc = preview->timestamp;
+        }
         if( playtime ) {
             std::chrono::seconds::rep tmp_sec = playtime->count();
             int pt_sec = static_cast<int>( tmp_sec % 60 );
@@ -1131,7 +1153,7 @@ bool main_menu::load_character_tab( const std::string &worldname )
                                           pt_hrs, pt_min, static_cast<int>( pt_sec ) );
         }
         // TODO: Replace this API to allow adding context without an empty description.
-        mmenu.entries.emplace_back( opt_val++, true, MENU_AUTOASSIGN, save_str, "", playtime_str );
+        mmenu.entries.emplace_back( opt_val++, true, MENU_AUTOASSIGN, save_str, desc, playtime_str );
     }
     mmenu.entries.emplace_back( opt_val, true, 'q', _( "<- Back to Main Menu" ), c_yellow, c_yellow );
     mmenu.query();

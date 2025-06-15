@@ -22,6 +22,10 @@ Options are split into "menu options" and "external options", which are usually 
 "menu options" are displayed in an in-game menu for adjustment, and are intended to be adjusted by plyters to tune the game to their liking. Their use is documented within this menu.
 "external options" are mostly intended to be used to expose options to mods that have imact on the game outside the norm for adjustments we expect players to make, though if you have a text editior you can still hve at it. Expected uses for these options are included in their entry in data/core/external_options.json
 
+### Additional world options
+
+- `SAVE_KEEP_ON_DEATH` preserves a character's save files after death instead of moving them to the graveyard.
+
 ### Hack for migrating menu options
 In the case when a menu option is migrated to an external option, it is desireable to have already-adjusted world or global options take precedence over the new external option.
 In this case, leave the hard-coded defintion of the option in place in options.cpp, but add the COPT_HIDE flag to the definition to hide it from the menu.  If it is a "world_default" type entry, leave it defined as such.  Then add a redundant entry to data/core/external_options.json with the addition of the "stub": true member, which indicates to the loading code that this entry should not override already-set values.
