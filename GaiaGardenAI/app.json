@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Gaia AI: Garden Design",
+    "slug": "gaia-ai-garden-design",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.tmata.gaiaaigardendesign",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Gaia AI needs your photos to redesign your garden.",
+        "NSCameraUsageDescription": "Gaia AI needs camera access to capture your garden photo."
+      }
+    },
+    "android": {
+      "package": "com.tmata.gaiaaigardendesign",
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
+    }
+  }
+}
