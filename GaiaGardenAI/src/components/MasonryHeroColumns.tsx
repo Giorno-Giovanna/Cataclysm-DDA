@@ -1,23 +1,141 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Image, ImageSourcePropType, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ONBOARDING_IMAGES } from '../constants/onboardingImages';
 
-function Col({ delay = 0 }: { delay?: number }) {
-  const y = useRef(new Animated.Value(0)).current;
+const COLUMN_GAP = 10;
+const CARD_GAP = 10;
+const COLUMN_IMAGE_INDEXES = [
+  [0, 3, 6, 9],
+  [1, 4, 7, 2],
+  [5, 8, 0, 3],
+];
+
+const HEIGHT_VARIANTS = [
+  [196, 166, 186, 172],
+  [170, 200, 164, 194],
+  [188, 174, 198, 168],
+];
+
+function AnimatedColumn({
+  images,
+  heights,
+  width,
+  direction,
+  duration,
+  topOffset = 0,
+}: {
+  images: ImageSourcePropType[];
+  heights: number[];
+  width: number;
+  direction: 'up' | 'down';
+  duration: number;
+  topOffset?: number;
+}) {
+  const travel = heights.reduce((sum, height) => sum + height, 0) + CARD_GAP * heights.length;
+  const translateY = useRef(new Animated.Value(direction === 'up' ? 0 : -travel)).current;
+  const repeatedImages = useMemo(() => [...images, ...images], [images]);
+  const repeatedHeights = useMemo(() => [...heights, ...heights], [heights]);
+
   useEffect(() => {
-    const a = Animated.loop(Animated.sequence([
-      Animated.timing(y, { toValue: -140, duration: 5000 + delay, useNativeDriver: true }),
-      Animated.timing(y, { toValue: 0, duration: 0, useNativeDriver: true }),
-    ]));
-    a.start();
-    return () => a.stop();
-  }, [delay, y]);
-  return <Animated.View style={{ transform: [{ translateY: y }] }}>{[...Array(4)].map((_, i) => <View key={i} style={styles.card}><Text>Placeholder Garden Visual</Text></View>)}</Animated.View>;
+    translateY.setValue(direction === 'up' ? 0 : -travel);
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, {
+          toValue: direction === 'up' ? -travel : 0,
+          duration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: direction === 'up' ? 0 : -travel,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [direction, duration, travel, translateY]);
+
+  return (
+    <View style={[styles.columnViewport, { width, marginTop: topOffset }]}>
+      <Animated.View style={{ transform: [{ translateY }] }}>
+        {repeatedImages.map((image, index) => (
+          <View
+            key={`${direction}-${index}`}
+            style={[
+              styles.card,
+              {
+                width,
+                height: repeatedHeights[index],
+                marginBottom: CARD_GAP,
+              },
+            ]}
+          >
+            <Image source={image} style={styles.image} resizeMode="cover" />
+          </View>
+        ))}
+      </Animated.View>
+    </View>
+  );
 }
 
 export function MasonryHeroColumns() {
-  return <View style={styles.row}><Col /><Col delay={900} /><Col delay={1400} /></View>;
+  const { width: screenWidth } = useWindowDimensions();
+  const contentWidth = screenWidth - 40;
+  const columnWidth = (contentWidth - COLUMN_GAP * 2) / 3;
+
+  const columns = COLUMN_IMAGE_INDEXES.map((indexes) => indexes.map((imageIndex) => ONBOARDING_IMAGES[imageIndex]));
+
+  return (
+    <View style={styles.container}>
+      <AnimatedColumn
+        images={columns[0]}
+        heights={HEIGHT_VARIANTS[0]}
+        width={columnWidth}
+        direction="up"
+        duration={18000}
+        topOffset={14}
+      />
+      <AnimatedColumn
+        images={columns[1]}
+        heights={HEIGHT_VARIANTS[1]}
+        width={columnWidth}
+        direction="down"
+        duration={16000}
+      />
+      <AnimatedColumn
+        images={columns[2]}
+        heights={HEIGHT_VARIANTS[2]}
+        width={columnWidth}
+        direction="up"
+        duration={18800}
+        topOffset={22}
+      />
+    </View>
+  );
 }
+
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8, height: 330 },
-  card: { height: 110, marginBottom: 8, borderRadius: 16, backgroundColor: '#dcebd8', justifyContent: 'center', alignItems: 'center', width: 112 },
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: COLUMN_GAP,
+    overflow: 'hidden',
+    paddingTop: 12,
+  },
+  columnViewport: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  card: {
+    borderRadius: 26,
+    overflow: 'hidden',
+    backgroundColor: '#d8dfd4',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
 });

@@ -1,35 +1,139 @@
-import React, { useRef, useState } from 'react';
-import { FlatList, Text, View, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { MasonryHeroColumns } from '../components/MasonryHeroColumns';
-import { AutoBeforeAfter } from '../components/AutoBeforeAfter';
-import { AutoFeatureSwapCard } from '../components/AutoFeatureSwapCard';
-
-const slides = [
-  { t: 'Transform Your Garden', s: 'Instantly redesign your outdoor space with AI', cta: 'Get Started' },
-  { t: 'Recreate Your Exteriors', s: 'Easily design your garden.', cta: 'Continue' },
-  { t: 'Edit anything, your way', s: 'Redesign anything in seconds. Full flexibility at your fingertips.', cta: 'Continue' },
-  { t: 'Design with Drag & Drop', s: 'Rearrange plants and decor with ready-made assets.', cta: 'Continue' },
-];
+import { DelayedFadeIn } from '../components/DelayedFadeIn';
 
 export function OnboardingScreen({ navigation }: any) {
-  const [index, setIndex] = useState(0);
-  const ref = useRef<FlatList>(null);
-  const next = async () => {
-    await Haptics.selectionAsync();
-    if (index === slides.length - 1) return navigation.replace('ReviewPrompt');
-    ref.current?.scrollToIndex({ index: index + 1 });
-  };
+  const insets = useSafeAreaInsets();
 
-  return <View style={{ flex: 1, padding: 20, backgroundColor: '#f7f7f3' }}>
-    <FlatList horizontal pagingEnabled ref={ref} data={slides} keyExtractor={(i) => i.t} showsHorizontalScrollIndicator={false}
-      onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width))}
-      renderItem={({ item, index: i }) => <View style={styles.slide}>{i===0?<MasonryHeroColumns />:i===1?<AutoBeforeAfter />:<AutoFeatureSwapCard labelA={i===2?'Outdoor decor':'Ready assets'} labelB={i===2?'Remove & Replace':'Drag & Drop'} alt={i===3} />}<Text style={styles.t}>{item.t}</Text><Text style={styles.s}>{item.s}</Text>{i===0&&<Text style={styles.proof}>Trusted by thousands
-★★★★★
-Top-rated design experience</Text>}</View>} />
-    <View style={styles.bottom}><View style={styles.dots}>{slides.map((_, i) => <View key={i} style={[styles.dot, i===index&&styles.active]} />)}</View><PrimaryButton title={slides[index].cta} onPress={next} /></View>
-  </View>;
+  return (
+    <View style={styles.container}>
+      <View style={styles.heroVisualContainer}>
+        <MasonryHeroColumns />
+        <View style={[styles.heroOverlayWrap, { paddingBottom: insets.bottom + 18 }]}>
+          <LinearGradient
+            colors={['rgba(247, 244, 239, 0)', 'rgba(247, 244, 239, 0.25)', 'rgba(247, 244, 239, 0.92)']}
+            locations={[0, 0.2, 0.43]}
+            style={styles.heroFade}
+          />
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroTitle}>Transform Your Garden</Text>
+            <Text style={styles.heroSubtitle}>Instantly redesign your garden with AI</Text>
+            <View style={styles.heroProofRow}>
+              <View style={styles.heroProofBlock}>
+                <Text style={styles.heroProofLabel}>Trusted by over</Text>
+                <Text style={styles.heroProofValue}>200,000+</Text>
+                <Text style={styles.heroProofStars}>5-star rated</Text>
+              </View>
+              <View style={styles.heroProofDivider} />
+              <View style={styles.heroProofBlock}>
+                <Text style={styles.heroProofNumber}>#1</Text>
+                <Text style={styles.heroProofValue}>Garden Design</Text>
+                <Text style={styles.heroProofValue}>App</Text>
+              </View>
+            </View>
+            <DelayedFadeIn>
+              <PrimaryButton title="Get Started" onPress={() => navigation.replace('OnboardingRecreate')} />
+            </DelayedFadeIn>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 }
 
-const styles = StyleSheet.create({ slide: { width: 350, flex: 1, gap: 14, paddingTop: 30 }, t: { fontSize: 31, fontWeight: '800' }, s: { color: '#666', fontSize: 16 }, proof: { color: '#333' }, bottom: { gap: 12, paddingBottom: 16 }, dots: { flexDirection: 'row', justifyContent: 'center', gap: 8 }, dot: { width: 8, height: 8, borderRadius: 8, backgroundColor: '#c7c7c7' }, active: { width: 22, backgroundColor: '#2e7d32' } });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f7f7f3',
+    paddingHorizontal: 8,
+  },
+  heroVisualContainer: {
+    flex: 1,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#dce6d6',
+  },
+  heroOverlayWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+  },
+  heroFade: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroOverlay: {
+    marginHorizontal: 10,
+    marginBottom: 12,
+    minHeight: '31%',
+    borderRadius: 30,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    backgroundColor: 'rgba(246, 242, 237, 0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.42)',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  heroTitle: {
+    color: '#111111',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    marginTop: 10,
+    color: '#444444',
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  heroProofRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    marginBottom: 20,
+    gap: 12,
+  },
+  heroProofBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroProofDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(20, 20, 20, 0.08)',
+  },
+  heroProofLabel: {
+    fontSize: 12,
+    color: '#5b5b5b',
+    fontWeight: '500',
+  },
+  heroProofValue: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: '#171717',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  heroProofStars: {
+    marginTop: 4,
+    color: '#d18b1f',
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  heroProofNumber: {
+    color: '#2e7d32',
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '900',
+  },
+});

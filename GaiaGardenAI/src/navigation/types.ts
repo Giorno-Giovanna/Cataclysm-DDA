@@ -1,9 +1,12 @@
 export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
+  OnboardingRecreate: undefined;
+  OnboardingDesignEdit: undefined;
   ReviewPrompt: undefined;
-  Paywall: undefined;
-  MainTabs: undefined;
+  Paywall: { source?: 'onboarding' | 'app' } | undefined;
+  OneTimeOffer: undefined;
+  MainTabs: { showOfferAfterPaywall?: boolean } | undefined;
   GardenDesign: { mode?: 'normal' | 'add' } | undefined;
   Result: any;
   Chat: undefined;
